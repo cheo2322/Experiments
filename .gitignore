@@ -1,0 +1,64 @@
+# Entornos virtuales
+venv/
+.env/
+.venv/
+
+# Archivos de configuración local
+*.env
+*.local
+*.secret
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs y dumps
+*.log
+*.out
+*.pid
+*.gz
+
+# Archivos de bases de datos locales
+*.sqlite3
+*.db
+
+# Archivos de test y cobertura
+htmlcov/
+.tox/
+.coverage
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.pytest_cache/
+
+# Jupyter notebooks
+.ipynb_checkpoints
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Distribución
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Cython
+*.c
+*.so
+
+# Modelos y datos temporales
+*.h5
+*.pkl
+*.joblib
+*.csv
+*.tsv
+
+# Otros
+.DS_Store
+Thumbs.db
