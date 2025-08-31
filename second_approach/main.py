@@ -1,4 +1,3 @@
-import argparse
 import yaml
 import torch
 
@@ -20,47 +19,32 @@ def resolve_device(cfg_device):
     return torch.device(cfg_device)
 
 def main():
-    parser = argparse.ArgumentParser(description="Caesar seq2seq pipeline")
-    parser.add_argument("--config", type=str, default="config.yaml", help="Ruta al archivo de configuración")
+    # ⚙️ Configuración fija
+    CONFIG_PATH = "second_approach/config.yaml"
+    CKPT_PATH = "artifacts/best.pt"
+    TEXT = "krod"  # texto cifrado para inferencia puntual
 
-    subparsers = parser.add_subparsers(dest="cmd", required=True)
-
-    sp_prepare = subparsers.add_parser("prepare", help="Construir vocab, splits, metadatos")
-    sp_prepare.add_argument("--csv", type=str, help="CSV de entrada (override de config)")
-
-    sp_train = subparsers.add_parser("train", help="Entrenamiento")
-    sp_train.add_argument("--resume", type=str, default=None, help="Checkpoint para reanudar")
-
-    sp_eval = subparsers.add_parser("eval", help="Evaluación")
-    sp_eval.add_argument("--ckpt", type=str, required=True, help="Checkpoint a evaluar")
-
-    sp_infer = subparsers.add_parser("infer", help="Inferencia puntual")
-    sp_infer.add_argument("--ckpt", type=str, required=True)
-    sp_infer.add_argument("--text", type=str, required=True, help="Texto encriptado a decodificar")
-
-    args = parser.parse_args()
-    cfg = load_config(args.config)
+    # 🧠 Inicialización
+    cfg = load_config(CONFIG_PATH)
     set_seed(42)
+    ensure_dir(cfg["data"]["output_dir"])
+    device = resolve_device(cfg["train"]["device"])
 
-    out_dir = cfg["data"]["output_dir"]
-    ensure_dir(out_dir)
+    # 🧩 Paso 1: Preparación de datos
+    print("📦 Preparando datos...")
+    run_prepare(cfg)
 
-    if args.cmd == "prepare":
-        if args.csv:
-            cfg["data"]["csv_path"] = args.csv
-        run_prepare(cfg)
+    # 🚀 Paso 2: Entrenamiento
+    print("🎯 Entrenando modelo...")
+    run_train(cfg, device=device, resume_path=None)
 
-    elif args.cmd == "train":
-        device = resolve_device(cfg["train"]["device"])
-        run_train(cfg, device=device, resume_path=args.resume)
+    # 🧪 Paso 3: Evaluación
+    print("🧪 Evaluando modelo...")
+    run_evaluate(cfg, device=device, ckpt_path=CKPT_PATH)
 
-    elif args.cmd == "eval":
-        device = resolve_device(cfg["train"]["device"])
-        run_evaluate(cfg, device=device, ckpt_path=args.ckpt)
-
-    elif args.cmd == "infer":
-        device = resolve_device(cfg["train"]["device"])
-        run_infer(cfg, device=device, ckpt_path=args.ckpt, encrypted_text=args.text)
+    # 🔍 Paso 4: Inferencia puntual
+    print(f"🔍 Inferencia sobre '{TEXT}'...")
+    run_infer(cfg, device=device, ckpt_path=CKPT_PATH, encrypted_text=TEXT)
 
 if __name__ == "__main__":
     main()

@@ -62,3 +62,6 @@ dist/
 # Otros
 .DS_Store
 Thumbs.db
+
+# Artifacts
+/artifacts/

@@ -1,5 +1,5 @@
 data:
-  csv_path: second_approach/cesar_dataset.csv
+  csv_path: second_approach/data/cesar_dataset.csv
   output_dir: artifacts
   train_split: 0.9
   use_sos_eos: false
@@ -20,10 +20,10 @@ model:
   tie_embeddings: false
 
 train:
-  epochs: 10
+  epochs: 100
   lr: 0.001
   teacher_forcing: 0.5
-  device: 'cuda' # "cuda" | "cpu" | "auto"
+  device: 'auto' # "cuda" | "cpu" | "auto"
   grad_clip: 1.0
   ckpt_every: 1
 
