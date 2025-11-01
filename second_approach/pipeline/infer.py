@@ -1,4 +1,5 @@
 import os, json, torch
+from data import vocab
 from utils.io import load_json
 
 def greedy_decode(model, src, vocab, max_len):
@@ -44,6 +45,17 @@ def run_infer(cfg, device, ckpt_path, encrypted_text):
 
     ids = encode_text(encrypted_text, vocab, meta["max_len"], use_sos_eos=meta["use_sos_eos"]).unsqueeze(0).to(device)
     pred = greedy_decode(model, ids, vocab, meta["max_len"]).squeeze(0).cpu().tolist()
+    
+    sos_idx = vocab["stoi"]["<sos>"]
+    eos_idx = vocab["stoi"]["<eos>"]
+
+    # Cortar en <eos> si aparece
+    if eos_idx in pred:
+        pred = pred[:pred.index(eos_idx)]
+
+    # Eliminar <sos> si aparece al inicio (por error del modelo)
+    if pred and pred[0] == sos_idx:
+        pred = pred[1:]
 
     itos = vocab["itos"]
     pad_id = vocab["stoi"]["<pad>"]

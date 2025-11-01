@@ -9,10 +9,13 @@ def encode_tokens(tokens, stoi, max_len):
     return torch.tensor(ids, dtype=torch.long)
 
 def encode_text(text, vocab, max_len, use_sos_eos=False):
-    tokens = list(text)
+    tokens = list(text.lower())
     if use_sos_eos:
         tokens = ["<sos>"] + tokens + ["<eos>"]
-    return encode_tokens(tokens, vocab["stoi"], max_len)
+        
+    ids = [vocab["stoi"].get(t, vocab["stoi"]["<pad>"]) for t in tokens]
+    padded = ids[:max_len] + [vocab["stoi"]["<pad>"]] * (max_len - len(ids))
+    return torch.tensor(padded)
 
 class CaesarDataset(Dataset):
     def __init__(self, csv_path, vocab, max_len, use_sos_eos=False):

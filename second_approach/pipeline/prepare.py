@@ -25,14 +25,6 @@ def run_prepare(cfg):
     # Vocab
     vocab = build_vocab_from_config(cfg, df_train, df_val)
     save_vocab(vocab, os.path.join(out_dir, "vocab.json"))
-    
-    print("[audit] vocab['stoi']:")
-    for k, v in vocab["stoi"].items():
-        print(f"  '{k}': {v}")
-        
-    print("[audit] vocab['itos']:")
-    for i, token in enumerate(vocab["itos"]):
-        print(f"  {i}: '{token}'")
 
     # Guardar metadatos
     meta = {

@@ -37,7 +37,7 @@ class Seq2Seq(nn.Module):
         self.decoder = decoder
         self.device = device
 
-    def forward(self, src, trg, teacher_forcing_ratio=0.5):
+    def forward(self, src, trg, teacher_forcing_ratio=0.5, forced_token_id=None):
         batch_size, trg_len = trg.size(0), trg.size(1)
         vocab_size = self.decoder.fc_out.out_features
 
@@ -46,7 +46,10 @@ class Seq2Seq(nn.Module):
         outputs = torch.zeros(batch_size, trg_len, vocab_size).to(self.device)
 
         encoder_outputs, hidden = self.encoder(src)
-        input = trg[:, 0].unsqueeze(1)  # <sos>
+        if forced_token_id is not None:
+            _input = torch.full((batch_size, 1), forced_token_id, dtype=torch.long, device=self.device)
+        else:
+            _input = trg[:, 0].unsqueeze(1)  # fallback a <sos>
         
         # print("[audit] input inicial (índices):", input.squeeze(1).tolist())
         # print("[audit] hidden inicial (mean):", hidden.mean().item())
@@ -54,10 +57,10 @@ class Seq2Seq(nn.Module):
         # print("[audit] encoder_outputs shape:", encoder_outputs.shape)
 
         for t in range(1, trg_len):
-            output, hidden = self.decoder(input, hidden, encoder_outputs)
+            output, hidden = self.decoder(_input, hidden, encoder_outputs)
             outputs[:, t] = output
             top1 = output.argmax(1).unsqueeze(1)
-            input = trg[:, t].unsqueeze(1) if torch.rand(1).item() < teacher_forcing_ratio else top1
+            _input = trg[:, t].unsqueeze(1) if torch.rand(1).item() < teacher_forcing_ratio else top1
 
         return outputs
     

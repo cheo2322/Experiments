@@ -1,5 +1,6 @@
 import os
 import json
+from xml.parsers.expat import model
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -66,7 +67,8 @@ def run_train(cfg, device, resume_path=None):
             #     print(f"[audit] target[{i}]: {[vocab['itos'][idx] for idx in trg[i].tolist()]}")
                 
             optim.zero_grad()
-            out = model(src, trg, teacher_forcing_ratio=cfg["train"]["teacher_forcing"])
+            forced_token_id = vocab["stoi"]["<sos>"]
+            out = model(src, trg, teacher_forcing_ratio=cfg["train"]["teacher_forcing"], forced_token_id=forced_token_id)
             
             
             # Auditoría del primer token predicho en el paso t=1
