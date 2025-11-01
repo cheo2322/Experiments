@@ -4,6 +4,9 @@ from data.dataset import CaesarDataset
 from utils.io import load_json
 
 def run_evaluate(cfg, device, ckpt_path):
+    enc_dim = cfg["model"]["hidden_dim"] * 2
+    dec_dim = cfg["model"]["hidden_dim"]
+    
     out_dir = cfg["data"]["output_dir"]
     vocab = json.load(open(os.path.join(out_dir, "vocab.json"), "r", encoding="utf-8"))
     meta = load_json(os.path.join(out_dir, "meta.json"))
@@ -14,7 +17,7 @@ def run_evaluate(cfg, device, ckpt_path):
     from models.seq2seq import Encoder, Decoder, Seq2Seq
     vocab_size = len(vocab["itos"])
     model = Seq2Seq(Encoder(vocab_size, cfg["model"]["emb_dim"], cfg["model"]["hidden_dim"]),
-                    Decoder(vocab_size, cfg["model"]["emb_dim"], cfg["model"]["hidden_dim"]), device).to(device)
+                    Decoder(vocab_size, cfg["model"]["emb_dim"], enc_dim, dec_dim), device).to(device)
     ckpt = torch.load(ckpt_path, map_location=device)
     model.load_state_dict(ckpt["model"])
     model.eval()

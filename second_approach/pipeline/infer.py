@@ -1,14 +1,33 @@
 import os, json, torch
 from utils.io import load_json
 
-def greedy_decode(model, src, max_len):
+def greedy_decode(model, src, vocab, max_len):
     model.eval()
+    sos_idx = vocab["stoi"]["<sos>"]
+    pad_idx = vocab["stoi"]["<pad>"]
+
+    batch_size = src.size(0)
+    device = src.device
+    vocab_size = len(vocab["itos"])
+
     with torch.no_grad():
-        # bootstrap con src como guía; si usas <sos>/<eos>, cambia aquí
-        out = model(src, trg=src, teacher_forcing_ratio=0.0)
-        return out.argmax(-1)
+        encoder_outputs, hidden = model.encoder(src)
+        input = torch.full((batch_size, 1), sos_idx, dtype=torch.long, device=device)
+        outputs = []
+
+        for _ in range(max_len):
+            output, hidden = model.decoder(input, hidden, encoder_outputs)
+            top1 = output.argmax(1).unsqueeze(1)  # [B, 1]
+            outputs.append(top1)
+            input = top1
+
+        pred = torch.cat(outputs, dim=1)  # [B, T]
+        return pred
 
 def run_infer(cfg, device, ckpt_path, encrypted_text):
+    enc_dim = cfg["model"]["hidden_dim"] * 2
+    dec_dim = cfg["model"]["hidden_dim"]
+    
     out_dir = cfg["data"]["output_dir"]
     vocab = json.load(open(os.path.join(out_dir, "vocab.json"), "r", encoding="utf-8"))
     meta = load_json(os.path.join(out_dir, "meta.json"))
@@ -18,13 +37,13 @@ def run_infer(cfg, device, ckpt_path, encrypted_text):
 
     vocab_size = len(vocab["itos"])
     model = Seq2Seq(Encoder(vocab_size, cfg["model"]["emb_dim"], cfg["model"]["hidden_dim"]),
-                    Decoder(vocab_size, cfg["model"]["emb_dim"], cfg["model"]["hidden_dim"]),
+                    Decoder(vocab_size, cfg["model"]["emb_dim"], enc_dim, dec_dim),
                     device).to(device)
     ckpt = torch.load(ckpt_path, map_location=device)
     model.load_state_dict(ckpt["model"])
 
     ids = encode_text(encrypted_text, vocab, meta["max_len"], use_sos_eos=meta["use_sos_eos"]).unsqueeze(0).to(device)
-    pred = greedy_decode(model, ids, meta["max_len"]).squeeze(0).cpu().tolist()
+    pred = greedy_decode(model, ids, vocab, meta["max_len"]).squeeze(0).cpu().tolist()
 
     itos = vocab["itos"]
     pad_id = vocab["stoi"]["<pad>"]
