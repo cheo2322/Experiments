@@ -1,7 +1,10 @@
 data:
   csv_path: second_approach/data/cesar_dataset.csv
   output_dir: artifacts
-  train_split: 0.9
+  split:
+    train: 0.7
+    eval: 0.2
+    infer: 0.1
   use_sos_eos: true
 
 vocab:

@@ -42,9 +42,12 @@ def main():
     print("🧪 Evaluando modelo...")
     run_evaluate(cfg, device=device, ckpt_path=CKPT_PATH)
 
-    # 🔍 Paso 4: Inferencia puntual
-    print(f"🔍 Inferencia sobre '{TEXT}'...")
+    # 🔍 Paso 4: Inferencia
+    # 🔍 Inferencia puntual
     run_infer(cfg, device=device, ckpt_path=CKPT_PATH, encrypted_text=TEXT)
+
+    # 📊 Inferencia masiva sobre infer.csv
+    run_infer(cfg, device=device, ckpt_path=CKPT_PATH)
 
 if __name__ == "__main__":
     main()

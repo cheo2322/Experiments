@@ -33,7 +33,7 @@ def run_train(cfg, device, resume_path=None):
     meta = load_json(os.path.join(out_dir, "meta.json"))
 
     train_ds = CaesarDataset(os.path.join(out_dir, "train.csv"), vocab, meta["max_len"], use_sos_eos=meta["use_sos_eos"])
-    val_ds = CaesarDataset(os.path.join(out_dir, "val.csv"), vocab, meta["max_len"], use_sos_eos=meta["use_sos_eos"])
+    val_ds = CaesarDataset(os.path.join(out_dir, "eval.csv"), vocab, meta["max_len"], use_sos_eos=meta["use_sos_eos"])
 
     loader_tr = DataLoader(train_ds, batch_size=cfg["loader"]["batch_size"], shuffle=True, num_workers=cfg["loader"]["num_workers"], pin_memory=cfg["loader"]["pin_memory"])
     loader_va = DataLoader(val_ds, batch_size=cfg["loader"]["batch_size"], shuffle=False, num_workers=cfg["loader"]["num_workers"], pin_memory=cfg["loader"]["pin_memory"])
@@ -62,24 +62,10 @@ def run_train(cfg, device, resume_path=None):
         total = 0.0
         for src, trg in loader_tr:
             src, trg = src.to(device), trg.to(device)
-            
-            # for i in range(cfg["loader"]["batch_size"]):
-            #     print(f"[audit] target[{i}]: {[vocab['itos'][idx] for idx in trg[i].tolist()]}")
-                
+
             optim.zero_grad()
             forced_token_id = vocab["stoi"]["<sos>"]
             out = model(src, trg, teacher_forcing_ratio=cfg["train"]["teacher_forcing"], forced_token_id=forced_token_id)
-            
-            
-            # Auditoría del primer token predicho en el paso t=1
-            # first_logits = out[:, 1, :]  # [B, vocab_size]
-            # first_pred = first_logits.argmax(dim=1)  # [B]
-
-            # from collections import Counter
-            # counts = Counter(first_pred.cpu().tolist())
-            # tokens = [vocab["itos"][idx] for idx in first_pred.cpu().tolist()]
-            # print(f"[epoch {epoch}] distribución primer token:", dict(counts))
-            # print(f"[epoch {epoch}] primer tokens predichos:", tokens[:10])  # muestra los primeros 10
 
             # shift para saltar el primer paso
             logits = out[:, 1:].reshape(-1, vocab_size)
@@ -107,8 +93,8 @@ def evaluate_loss(model, loader, criterion, device, vocab_size, vocab):
             src, trg = src.to(device), trg.to(device)
             out = model(src, trg, teacher_forcing_ratio=0.0)
             
-            pred = out.argmax(dim=-1)
-            audit_batch(pred, trg, vocab)
+            # pred = out.argmax(dim=-1)
+            # audit_batch(pred, trg, vocab)
             
             logits = out[:, 1:].reshape(-1, vocab_size)
             targets = trg[:, 1:].reshape(-1)
