@@ -1,0 +1,12 @@
+data:
+  csv_path: t1_third_approach/data/rc4_dataset.csv
+  output_dir: artifacts
+  split:
+    train: 0.7
+    eval: 0.2
+    infer: 0.1
+  use_sos_eos: true
+  n: 10
+  min_len: 5
+  max_len: 12
+  key: 'secretkey'
