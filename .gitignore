@@ -64,4 +64,4 @@ dist/
 Thumbs.db
 
 # Artifacts
-/artifacts/
+**/artifacts

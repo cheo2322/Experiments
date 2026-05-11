@@ -1,6 +1,6 @@
 data:
   csv_path: second_approach/data/cesar_dataset.csv
-  output_dir: artifacts
+  output_dir: second_approach/artifacts
   split:
     train: 0.7
     eval: 0.2
