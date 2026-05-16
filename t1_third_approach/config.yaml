@@ -6,7 +6,7 @@ data:
     eval: 0.2
     infer: 0.1
   use_sos_eos: true # Add start and end tokens to the sequences
-  n: 10
+  n: 100
   min_len: 5
   max_len: 12
   key: 'secretkey'
@@ -18,3 +18,5 @@ train:
   device: 'auto' # "cuda" | "cpu" | "auto"
   grad_clip: 1.0
   ckpt_every: 1
+  num_workers: 2
+  batch_size: 64

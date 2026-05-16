@@ -1,25 +1,68 @@
 import yaml
+import torch
+from torch.utils.data import random_split, DataLoader
+
 from t1_third_approach.data import rc4
-from dataloader.dataloader_seq_2_seq import get_dataloader
+from dataloader.dataloader_seq_2_seq import Seq2SeqDataset, collate_fn
+
+
+def load_config(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+def resolve_device(cfg_device):
+    if cfg_device == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(cfg_device)
 
 def main():
     # Leer configuración
-    with open("t1_third_approach/config.yaml", "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+    config = load_config("t1_third_approach/config.yaml")
+    device = resolve_device(config["train"]["device"])
 
     # Extraer parámetros de la sección 'data'
-    csv_path = config["data"].get("csv_path")
+    csv_path = config["data"]["csv_path"]
     min_len = config["data"].get("min_len", 5)
     max_len = config["data"].get("max_len", 12)
     n = config["data"].get("n", 10)
     key_str = config["data"].get("key", "secretkey")
 
-    # Llamar al generador de datos
+    # Generar dataset si no existe
     rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
-    
-    # Llamar al dataloader
-    data = get_dataloader(csv_path)
-    print(f"Primer batch de datos (plain, encrypted): {next(iter(data))}")
+
+    # Dataset completo
+    dataset = Seq2SeqDataset(csv_path, add_sos_eos=True)
+
+    # Calcular tamaños según split del yaml
+    n_total = len(dataset)
+    n_train = int(config["data"]["split"]["train"] * n_total)
+    n_eval = int(config["data"]["split"]["eval"] * n_total)
+    n_infer = n_total - n_train - n_eval
+
+    # Dividir dataset
+    train_set, eval_set, infer_set = random_split(dataset, [n_train, n_eval, n_infer])
+
+    # Crear DataLoaders
+    train_loader = DataLoader(
+        train_set,
+        batch_size=config["train"]["batch_size"],
+        shuffle=True,
+        collate_fn=collate_fn,
+        num_workers=config["train"]["num_workers"])
+
+    eval_loader = DataLoader(
+        eval_set,
+        batch_size=config["train"]["batch_size"],
+        shuffle=False,
+        collate_fn=collate_fn,
+        num_workers=config["train"]["num_workers"])
+
+    infer_loader = DataLoader(
+        infer_set,
+        batch_size=1,
+        shuffle=False,
+        collate_fn=collate_fn,
+        num_workers=config["train"]["num_workers"])
 
 if __name__ == "__main__":
     main()
