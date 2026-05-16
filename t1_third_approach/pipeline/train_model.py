@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
 from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
 from t1_third_approach.pipeline.eval_model import eval_model
 
@@ -15,9 +16,19 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    # Updates the learning rate based on the validation loss
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode='min',
+        factor=0.5,
+        patience=5,
+        verbose=True
+    )
+    
+    best_eval_loss = float('inf')
+    best_eval_acc = 0.0
     
     for epoch in range(epochs):
-        
         # Training
         model.train()
         total_loss = 0
@@ -37,11 +48,15 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
 
         # Validation
         val_loss, val_acc = eval_model(loaders[1], model, criterion, device)
+        scheduler.step(val_loss)
+        
         if (epoch + 1) % print_every == 0:
             print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
         # Save the best according to validation loss and accuracy thresholds
-        if val_loss < loss_threshold and val_acc > acc_threshold:
+        if val_loss < loss_threshold and val_acc > acc_threshold and val_loss < best_eval_loss and val_acc > best_eval_acc:
+            best_eval_loss = val_loss
+            best_eval_acc = val_acc
             ckpt_path = f"{output_dir}/best_model.pt"
             torch.save(model.state_dict(), ckpt_path)
-            print(f"Modelo guardado en {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
+            print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
