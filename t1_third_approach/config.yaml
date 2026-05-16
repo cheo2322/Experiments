@@ -12,12 +12,12 @@ data:
   key: 'secretkey'
 
 train:
-  epochs: 10
+  # TODO: There's no a defined amount of epochs, but stop when loss converges and changes are bigger than a threshold (e.g., 0.001) for 5 consecutive epochs.
+  epochs: 100
   lr: 0.001
   teacher_forcing: 1.0
   device: 'auto' # "cuda" | "cpu" | "auto"
   grad_clip: 1.0
-  ckpt_every: 1
   num_workers: 2
   batch_size: 64
   vocab_size: 259 # ASCII (256) + <pad>, <sos>, <eos>

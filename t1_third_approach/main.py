@@ -67,16 +67,15 @@ def main():
     
     # Training
     vocab_size = config["train"]["vocab_size"]
-
     train_model(
-        dataloader=train_loader,
+        train_loader=train_loader,
+        eval_loader=eval_loader,
         vocab_size=vocab_size,
         emb_dim=config["model"]["embedding_dim"],
         hidden_dim=config["model"]["hidden_dim"],
         lr=config["train"]["lr"],
         epochs=config["train"]["epochs"],
         grad_clip=config["train"]["grad_clip"],
-        ckpt_every=config["train"]["ckpt_every"],
         device=device,
         output_dir=config["data"]["output_dir"],
         weight_decay=config["train"]["weight_decay"]
