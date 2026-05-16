@@ -5,27 +5,25 @@ from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
 from t1_third_approach.pipeline.eval_model import eval_model
 
 
-def train_model(train_loader, eval_loader, vocab_size, emb_dim, hidden_dim,
-                lr, epochs, grad_clip, device, output_dir, weight_decay=0.0):
+def train_model(loaders, vocab_size, emb_dim, hidden_dim,
+                lr, epochs, grad_clip, device, output_dir, weight_decay=0.0,
+                print_every = 1, loss_threshold = 2.0, acc_threshold = 0.5):
 
     encoder = Encoder(vocab_size, emb_dim, hidden_dim)
     decoder = Decoder(vocab_size, emb_dim, hidden_dim)
     model = Seq2Seq(encoder, decoder).to(device)
 
-    # Definir loss y optimizer
-    criterion = nn.CrossEntropyLoss(ignore_index=0)  # ignorar <pad>
+    criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-    best_val_loss = float("inf")
     
-    # Loop de entrenamiento
     for epoch in range(epochs):
-        # --- Training ---
+        
+        # Training
         model.train()
         total_loss = 0
         
         # Itering over batches
-        for plain, encrypted, plain_lengths, _ in train_loader:
+        for plain, encrypted, plain_lengths, _ in loaders[0]:
             plain, encrypted = plain.to(device), encrypted.to(device)
             optimizer.zero_grad()
             output = model(plain, plain_lengths, encrypted[:, :-1])
@@ -35,16 +33,15 @@ def train_model(train_loader, eval_loader, vocab_size, emb_dim, hidden_dim,
             optimizer.step()
             total_loss += loss.item()
 
-        avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}")
+        avg_loss = total_loss / len(loaders[0])
 
-        # --- Validation ---
-        val_loss, val_acc = eval_model(eval_loader, model, criterion, device)
-        print(f"Epoch {epoch+1}/{epochs}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        # Validation
+        val_loss, val_acc = eval_model(loaders[1], model, criterion, device)
+        if (epoch + 1) % print_every == 0:
+            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
-        # Guardar mejor modelo según validación
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        # Save the best according to validation loss and accuracy thresholds
+        if val_loss < loss_threshold and val_acc > acc_threshold:
             ckpt_path = f"{output_dir}/best_model.pt"
             torch.save(model.state_dict(), ckpt_path)
-            print(f"Mejor modelo guardado en {ckpt_path}")
+            print(f"Modelo guardado en {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")

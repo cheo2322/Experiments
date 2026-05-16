@@ -37,4 +37,5 @@ def generate_csv(csv_path, n, min_len, max_len, key_str):
             plain = random_string(min_len, max_len)
             encrypted = rc4(key, plain)
             writer.writerow([plain, encrypted])
-    print(f"Archivo {csv_path} generado.")
+
+    print(f"CSV file {csv_path} generated with {n} records.")

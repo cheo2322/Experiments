@@ -6,14 +6,14 @@ data:
     eval: 0.2
     infer: 0.1
   use_sos_eos: true # Add start and end tokens to the sequences
-  n: 100
+  n: 10000
   min_len: 5
   max_len: 12
   key: 'secretkey'
 
 train:
   # TODO: There's no a defined amount of epochs, but stop when loss converges and changes are bigger than a threshold (e.g., 0.001) for 5 consecutive epochs.
-  epochs: 100
+  epochs: 1000
   lr: 0.001
   teacher_forcing: 1.0
   device: 'auto' # "cuda" | "cpu" | "auto"
@@ -22,6 +22,11 @@ train:
   batch_size: 64
   vocab_size: 259 # ASCII (256) + <pad>, <sos>, <eos>
   weight_decay: 0.0005
+  print_every: 5
+
+validation:
+  loss_threshold: 1.0
+  acc_threshold: 0.75
 
 model:
   embedding_dim: 128

@@ -28,8 +28,8 @@ def main():
     n = config["data"].get("n", 10)
     key_str = config["data"].get("key", "secretkey")
 
-    # Generar dataset si no existe
-    rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
+    # Generate dataset (uncomment if you want to generate a new one, but be careful as it will overwrite the existing one)
+    # rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
 
     # Dataset completo
     dataset = Seq2SeqDataset(csv_path, add_sos_eos=True)
@@ -68,8 +68,7 @@ def main():
     # Training
     vocab_size = config["train"]["vocab_size"]
     train_model(
-        train_loader=train_loader,
-        eval_loader=eval_loader,
+        [train_loader, eval_loader],
         vocab_size=vocab_size,
         emb_dim=config["model"]["embedding_dim"],
         hidden_dim=config["model"]["hidden_dim"],
@@ -78,7 +77,10 @@ def main():
         grad_clip=config["train"]["grad_clip"],
         device=device,
         output_dir=config["data"]["output_dir"],
-        weight_decay=config["train"]["weight_decay"]
+        weight_decay=config["train"]["weight_decay"],
+        print_every=config["train"]["print_every"],
+        loss_threshold=config["validation"]["loss_threshold"],
+        acc_threshold=config["validation"]["acc_threshold"]
     )
 
 if __name__ == "__main__":
