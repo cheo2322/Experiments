@@ -20,3 +20,9 @@ train:
   ckpt_every: 1
   num_workers: 2
   batch_size: 64
+  vocab_size: 259 # ASCII (256) + <pad>, <sos>, <eos>
+  weight_decay: 0.0005
+
+model:
+  embedding_dim: 128
+  hidden_dim: 256

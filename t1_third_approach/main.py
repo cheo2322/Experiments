@@ -4,6 +4,7 @@ from torch.utils.data import random_split, DataLoader
 
 from t1_third_approach.data import rc4
 from dataloader.dataloader_seq_2_seq import Seq2SeqDataset, collate_fn
+from t1_third_approach.pipeline.train_model import train_model
 
 
 def load_config(path):
@@ -63,6 +64,23 @@ def main():
         shuffle=False,
         collate_fn=collate_fn,
         num_workers=config["train"]["num_workers"])
+    
+    # Training
+    vocab_size = config["train"]["vocab_size"]
+
+    train_model(
+        dataloader=train_loader,
+        vocab_size=vocab_size,
+        emb_dim=config["model"]["embedding_dim"],
+        hidden_dim=config["model"]["hidden_dim"],
+        lr=config["train"]["lr"],
+        epochs=config["train"]["epochs"],
+        grad_clip=config["train"]["grad_clip"],
+        ckpt_every=config["train"]["ckpt_every"],
+        device=device,
+        output_dir=config["data"]["output_dir"],
+        weight_decay=config["train"]["weight_decay"]
+    )
 
 if __name__ == "__main__":
     main()
