@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from graphics.graphic import plot_metrics
 from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
-from t1_third_approach.pipeline.eval_model import eval_model
+from t1_third_approach.pipeline.eval_model import compute_accuracy, eval_model
 
 
 def train_model(loaders, vocab_size, emb_dim, hidden_dim,
@@ -21,12 +22,18 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         optimizer,
         mode='min',
         factor=0.5,
-        patience=5,
-        verbose=True
+        patience=5
     )
     
     best_eval_loss = float('inf')
     best_eval_acc = 0.0
+    
+    train_losses = []
+    val_losses = []
+    train_accuracies = []
+    val_accuracies = []
+    
+    total_acc = 0.0
     
     for epoch in range(epochs):
         # Training
@@ -37,6 +44,7 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         for plain, encrypted, plain_lengths, _ in loaders[0]:
             plain, encrypted = plain.to(device), encrypted.to(device)
             optimizer.zero_grad()
+
             output = model(plain, plain_lengths, encrypted[:, :-1])
             loss = criterion(output.reshape(-1, vocab_size), encrypted[:, 1:].reshape(-1))
             loss.backward()
@@ -44,14 +52,25 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             optimizer.step()
             total_loss += loss.item()
 
+            # Accuracy con tu función
+            batch_acc = compute_accuracy(output, encrypted[:, 1:], pad_idx=0)
+            total_acc += batch_acc
+
         avg_loss = total_loss / len(loaders[0])
+        train_acc = total_acc / len(loaders[0])
+
 
         # Validation
         val_loss, val_acc = eval_model(loaders[1], model, criterion, device)
         scheduler.step(val_loss)
         
+        train_losses.append(avg_loss)
+        train_accuracies.append(train_acc)
+        val_losses.append(val_loss)
+        val_accuracies.append(val_acc)
+        
         if (epoch + 1) % print_every == 0:
-            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
         # Save the best according to validation loss and accuracy thresholds
         if val_loss < loss_threshold and val_acc > acc_threshold and val_loss < best_eval_loss and val_acc > best_eval_acc:
@@ -59,4 +78,6 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             best_eval_acc = val_acc
             ckpt_path = f"{output_dir}/best_model.pt"
             torch.save(model.state_dict(), ckpt_path)
-            print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
+            print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
+
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, output_dir)
