@@ -33,14 +33,13 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
     train_accuracies = []
     val_accuracies = []
     
-    total_acc = 0.0
-    
     for epoch in range(epochs):
         # Training
         model.train()
         total_loss = 0
-        
-        # Itering over batches
+        total_correct = 0
+        total_tokens = 0
+
         for plain, encrypted, plain_lengths, _ in loaders[0]:
             plain, encrypted = plain.to(device), encrypted.to(device)
             optimizer.zero_grad()
@@ -52,13 +51,12 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             optimizer.step()
             total_loss += loss.item()
 
-            # Accuracy con tu función
-            batch_acc = compute_accuracy(output, encrypted[:, 1:], pad_idx=0)
-            total_acc += batch_acc
+            correct, tokens = compute_accuracy(output, encrypted[:, 1:], pad_idx=0)
+            total_correct += correct
+            total_tokens += tokens
 
         avg_loss = total_loss / len(loaders[0])
-        train_acc = total_acc / len(loaders[0])
-
+        train_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
 
         # Validation
         val_loss, val_acc = eval_model(loaders[1], model, criterion, device)
@@ -69,7 +67,7 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
         
-        if (epoch + 1) % print_every == 0:
+        if epoch % print_every == 0:
             print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
         # Save the best according to validation loss and accuracy thresholds
@@ -80,4 +78,5 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             torch.save(model.state_dict(), ckpt_path)
             print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
 
-    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, output_dir)
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, title="Curvas de entrenamiento y validación")
+
