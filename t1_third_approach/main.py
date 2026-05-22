@@ -5,6 +5,7 @@ from torch.utils.data import random_split, DataLoader
 from t1_third_approach.data import rc4
 from dataloader.dataloader_seq_2_seq import Seq2SeqDataset, collate_fn
 from t1_third_approach.pipeline.train_model import train_model
+from t1_third_approach.pipeline.infer_model import infer_model
 
 
 def load_config(path):
@@ -20,6 +21,8 @@ def main():
     # Leer configuración
     config = load_config("t1_third_approach/config.yaml")
     device = resolve_device(config["train"]["device"])
+    
+    print("Device:", device)
 
     # Extraer parámetros de la sección 'data'
     csv_path = config["data"]["csv_path"]
@@ -29,7 +32,7 @@ def main():
     key_str = config["data"].get("key", "secretkey")
 
     # Generate dataset (uncomment if you want to generate a new one, but be careful as it will overwrite the existing one)
-    # rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
+    rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
 
     # Dataset completo
     dataset = Seq2SeqDataset(csv_path, add_sos_eos=True)
@@ -81,6 +84,17 @@ def main():
         print_every=config["train"]["print_every"],
         loss_threshold=config["validation"]["loss_threshold"],
         acc_threshold=config["validation"]["acc_threshold"]
+    )
+    
+    # Inferencia (solo pasas dataset/loader y config)
+    infer_model(
+        infer_loader,
+        dataset,
+        device,
+        vocab_size=config["train"]["vocab_size"],
+        embidding_dim=config["model"]["embedding_dim"],
+        hidden_dim=config["model"]["hidden_dim"],
+        output_dir=config["data"]["output_dir"]
     )
 
 if __name__ == "__main__":

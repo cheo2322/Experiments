@@ -31,4 +31,5 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs, title="Curvas d
 
     fig.suptitle(title, fontsize=16)
     plt.tight_layout()
-    plt.show()
+    plt.savefig("t1_third_approach/artifacts/metrics.png")
+    plt.close(fig)
