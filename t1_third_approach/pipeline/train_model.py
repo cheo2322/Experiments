@@ -17,6 +17,7 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    
     # Updates the learning rate based on the validation loss
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,

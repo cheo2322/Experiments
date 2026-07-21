@@ -86,7 +86,7 @@ def main():
         acc_threshold=config["validation"]["acc_threshold"]
     )
     
-    # Inferencia (solo pasas dataset/loader y config)
+    # Inference
     infer_model(
         infer_loader,
         dataset,

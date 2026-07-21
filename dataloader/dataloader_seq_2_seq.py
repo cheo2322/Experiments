@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 
+from data import dataset
+
 class Seq2SeqDataset(Dataset):
     def __init__(self, csv_path, add_sos_eos=True):
         # Cargar CSV
@@ -11,11 +13,14 @@ class Seq2SeqDataset(Dataset):
         self.add_sos_eos = add_sos_eos
 
         # Vocab de 256 ASCII + tokens especiales
+        special_tokens = ["<pad>", "<sos>", "<eos>"]
         base_vocab = [chr(i) for i in range(256)]
-        self.vocab = base_vocab + ["<pad>", "<sos>", "<eos>"]
+        self.vocab = special_tokens + base_vocab
 
         self.char2idx = {ch: idx for idx, ch in enumerate(self.vocab)}
         self.idx2char = {idx: ch for ch, idx in self.char2idx.items()}
+
+        self.pad_idx = self.char2idx["<pad>"]  # ahora sí es 0
 
     def __len__(self):
         return len(self.plain_texts)

@@ -1,6 +1,7 @@
 import csv
 import random
 import string
+import base64
 
 # Implementación sencilla de RC4
 def rc4(key, data):
@@ -36,6 +37,8 @@ def generate_csv(csv_path, n, min_len, max_len, key_str):
         for _ in range(n):
             plain = random_string(min_len, max_len)
             encrypted = rc4(key, plain)
-            writer.writerow([plain, encrypted])
+            # Codificar en Base64
+            encrypted_b64 = base64.b64encode(encrypted.encode("latin-1")).decode("ascii")
+            writer.writerow([plain, encrypted_b64])
 
     print(f"CSV file {csv_path} generated with {n} records.")
