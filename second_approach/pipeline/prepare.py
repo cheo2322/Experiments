@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from data import vocab
 from data.vocab import build_vocab_from_config, save_vocab
 from utils.io import ensure_dir, save_json
 

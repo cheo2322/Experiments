@@ -15,6 +15,7 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
     print(f"Modelo cargado desde {ckpt_path}")
 
     predictions = []
+    shown = 0
     with torch.no_grad():
         for plain, encrypted, plain_lengths, _ in infer_loader:
             plain, encrypted = plain.to(device), encrypted.to(device)
@@ -22,12 +23,23 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
             preds = output.argmax(-1)
             predictions.extend(preds.cpu().tolist())
 
-    # Decodificar tokens → texto
-    # Aquí cambiamos .itos por acceso directo a la lista
+            decoded_batch = [[dataset.vocab[token] for token in seq] for seq in preds.cpu().tolist()]
+
+            for i, (plain_seq, encrypted_seq, pred_seq) in enumerate(zip(plain, encrypted, decoded_batch)):
+                if shown >= 10:
+                    break
+                plain_text = " ".join([dataset.vocab[token.item()] for token in plain_seq])
+                encrypted_text = " ".join([dataset.vocab[token.item()] for token in encrypted_seq])
+                pred_text = " ".join(pred_seq)
+
+                print(f"Ejemplo {shown+1}:")
+                print(f"  Texto plano   : {plain_text}")
+                print(f"  Texto cifrado : {encrypted_text}")
+                print(f"  Predicción    : {pred_text}")
+                print("-" * 50)
+                shown += 1
+            if shown >= 10:
+                break
+
     decoded = [[dataset.vocab[token] for token in seq] for seq in predictions]
-
-    print("Resultados de inferencia:")
-    for i, seq in enumerate(decoded[:10]):  # mostrar primeros 10
-        print(f"Ejemplo {i+1}: {' '.join(seq)}")
-
     return decoded
