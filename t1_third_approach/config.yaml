@@ -12,7 +12,6 @@ data:
   key: 'secretkey'
 
 train:
-  # TODO: There's no a defined amount of epochs, but stop when loss converges and changes are bigger than a threshold (e.g., 0.001) for 5 consecutive epochs.
   epochs: 200
   lr: 0.001
   device: 'auto' # "cuda" | "cpu" | "auto"

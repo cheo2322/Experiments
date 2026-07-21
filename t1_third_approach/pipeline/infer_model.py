@@ -1,6 +1,19 @@
 import torch
 from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
 
+def decode_tokens(seq, vocab):
+    chars = []
+    for token in seq:  # token debe ser int
+        ch = vocab[token]  # vocab es lista, indexada por int
+        if ch == "<sos>":
+            continue
+        if ch == "<eos>":
+            break
+        if ch == "<pad>":
+            continue
+        chars.append(ch)
+    return "".join(chars)
+
 def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir):
     # Rebuild model
     encoder = Encoder(vocab_size, embidding_dim, hidden_dim)
@@ -23,14 +36,14 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
             preds = output.argmax(-1)
             predictions.extend(preds.cpu().tolist())
 
-            decoded_batch = [[dataset.vocab[token] for token in seq] for seq in preds.cpu().tolist()]
+            decoded_batch = preds.cpu().tolist()
 
             for i, (plain_seq, encrypted_seq, pred_seq) in enumerate(zip(plain, encrypted, decoded_batch)):
                 if shown >= 10:
                     break
-                plain_text = " ".join([dataset.vocab[token.item()] for token in plain_seq])
-                encrypted_text = " ".join([dataset.vocab[token.item()] for token in encrypted_seq])
-                pred_text = " ".join(pred_seq)
+                plain_text = decode_tokens(plain_seq, dataset.vocab)
+                encrypted_text = decode_tokens(encrypted_seq, dataset.vocab)
+                pred_text = decode_tokens(pred_seq, dataset.vocab)
 
                 print(f"Example {shown+1}:")
                 print(f"  Plain text    : {plain_text}")

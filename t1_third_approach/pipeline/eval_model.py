@@ -22,13 +22,23 @@ def eval_model(eval_loader, model, criterion, device, pad_idx=0):
                 output.reshape(-1, output.size(-1)),
                 encrypted[:, 1:].reshape(-1)
             )
-            total_loss += loss.item()
+
+            # número de tokens válidos (sin pad)
+            num_tokens = (encrypted[:, 1:] != pad_idx).sum().item()
+
+            # acumular pérdida ponderada por tokens
+            total_loss += loss.item() * num_tokens
+            total_tokens += num_tokens
 
             # accuracy con la función
-            correct, tokens = compute_accuracy(output, encrypted[:, 1:], pad_idx)
+            correct, _ = compute_accuracy(output, encrypted[:, 1:], pad_idx)
             total_correct += correct
-            total_tokens += tokens
+            # ojo: tokens aquí y num_tokens arriba deberían coincidir
+            # pero usamos ambos para consistencia
+            # total_tokens ya se acumula arriba
 
-    avg_loss = total_loss / len(eval_loader)
+    # pérdida promedio por token
+    avg_loss = total_loss / total_tokens if total_tokens > 0 else 0.0
+    # accuracy promedio por token
     avg_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
     return avg_loss, avg_acc
