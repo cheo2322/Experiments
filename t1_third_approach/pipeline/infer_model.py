@@ -12,7 +12,7 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
     state_dict = torch.load(ckpt_path, map_location=device, weights_only=True)
     model.load_state_dict(state_dict)
     model.eval()
-    print(f"Modelo cargado desde {ckpt_path}")
+    print(f"Model loaded from {ckpt_path}")
 
     predictions = []
     shown = 0
@@ -32,10 +32,10 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
                 encrypted_text = " ".join([dataset.vocab[token.item()] for token in encrypted_seq])
                 pred_text = " ".join(pred_seq)
 
-                print(f"Ejemplo {shown+1}:")
-                print(f"  Texto plano   : {plain_text}")
-                print(f"  Texto cifrado : {encrypted_text}")
-                print(f"  Predicción    : {pred_text}")
+                print(f"Example {shown+1}:")
+                print(f"  Plain text    : {plain_text}")
+                print(f"  Encrypted text: {encrypted_text}")
+                print(f"  Prediction    : {pred_text}")
                 print("-" * 50)
                 shown += 1
             if shown >= 10:

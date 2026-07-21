@@ -17,7 +17,7 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    
+
     # Updates the learning rate based on the validation loss
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
@@ -79,5 +79,5 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             torch.save(model.state_dict(), ckpt_path)
             print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
 
-    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, title="Curvas de entrenamiento y validación")
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies)
 

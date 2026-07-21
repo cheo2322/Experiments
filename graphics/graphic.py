@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-def plot_metrics(train_losses, val_losses, train_accs, val_accs, title="Curvas de entrenamiento y validación"):
+def plot_metrics(train_losses, val_losses, train_accs, val_accs, title="Training and validation metrics"):
     """
     train_losses: lista con loss promedio por época en entrenamiento
     val_losses: lista con loss promedio por época en validación
@@ -14,8 +14,8 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs, title="Curvas d
     # Losses
     axes[0].plot(epochs, train_losses, label="Train Loss", color="blue")
     axes[0].plot(epochs, val_losses, label="Val Loss", color="orange")
-    axes[0].set_title("Loss por época")
-    axes[0].set_xlabel("Épocas")
+    axes[0].set_title("Epoch loss")
+    axes[0].set_xlabel("Epoch")
     axes[0].set_ylabel("Loss")
     axes[0].legend()
     axes[0].grid(True)
@@ -23,8 +23,8 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs, title="Curvas d
     # Accuracies
     axes[1].plot(epochs, train_accs, label="Train Accuracy", color="green")
     axes[1].plot(epochs, val_accs, label="Val Accuracy", color="red")
-    axes[1].set_title("Accuracy por época")
-    axes[1].set_xlabel("Épocas")
+    axes[1].set_title("Epoch accuracy")
+    axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("Accuracy")
     axes[1].legend()
     axes[1].grid(True)
