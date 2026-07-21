@@ -1,8 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
-
-from data import dataset
+import base64
 
 class Seq2SeqDataset(Dataset):
     def __init__(self, csv_path, add_sos_eos=True):
@@ -33,7 +32,12 @@ class Seq2SeqDataset(Dataset):
 
     def __getitem__(self, idx):
         plain_seq = self.encode(self.plain_texts[idx])
-        encrypted_seq = self.encode(self.encrypted_texts[idx])
+
+        # Decodificar Base64 antes de tokenizar
+        encrypted_b64 = self.encrypted_texts[idx]
+        encrypted_raw = base64.b64decode(encrypted_b64).decode("latin-1")
+
+        encrypted_seq = self.encode(encrypted_raw)
         return torch.tensor(plain_seq, dtype=torch.long), torch.tensor(encrypted_seq, dtype=torch.long)
 
 
