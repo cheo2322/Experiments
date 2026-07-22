@@ -8,7 +8,7 @@ from t1_third_approach.pipeline.eval_model import compute_accuracy, eval_model
 
 
 def train_model(loaders, vocab_size, emb_dim, hidden_dim,
-                lr, epochs, grad_clip, device, output_dir, weight_decay=0.0,
+                lr, epochs, grad_clip, device, output_dir, weight_decay,
                 print_every = 1, loss_threshold = 2.0, acc_threshold = 0.5):
 
     encoder = TransformerEncoder(
@@ -16,19 +16,19 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         emb_dim=emb_dim,
         n_heads=4,
         n_layers=2,
-        ff_dim=256
+        ff_dim=hidden_dim
     )
     decoder = TransformerDecoder(
         vocab_size=vocab_size,
         emb_dim=emb_dim,
         n_heads=4,
         n_layers=2,
-        ff_dim=256
+        ff_dim=hidden_dim
     )
     model = Seq2Seq(encoder, decoder).to(device)
 
     criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)
-    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     def lr_lambda(epoch):
         warmup_epochs = 10
         if epoch < warmup_epochs:

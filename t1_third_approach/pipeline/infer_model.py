@@ -1,9 +1,10 @@
 import torch
 from models.seq2seq.seq2seq import Seq2Seq, TransformerEncoder, TransformerDecoder
 
+
 def decode_tokens(seq, vocab):
     chars = []
-    for token in seq:  # token debe ser int
+    for token in seq:
         ch = vocab[token]
         if ch in ("<sos>", "<pad>"):
             continue
@@ -11,6 +12,7 @@ def decode_tokens(seq, vocab):
             break
         chars.append(ch)
     return "".join(chars)
+
 
 def greedy_decode(model, encrypted, max_len, sos_idx, eos_idx, device):
     # Encoder devuelve memory y máscara
@@ -38,8 +40,19 @@ def greedy_decode(model, encrypted, max_len, sos_idx, eos_idx, device):
 
     return decoded
 
+
+def _trim_target(target_row, pad_idx, eos_idx):
+    """Quita <sos> inicial y recorta en el primer <eos> o <pad>."""
+    target_seq = target_row[1:]  # quitar <sos>
+    if eos_idx in target_seq:
+        target_seq = target_seq[:target_seq.index(eos_idx)]
+    elif pad_idx in target_seq:
+        target_seq = target_seq[:target_seq.index(pad_idx)]
+    return target_seq
+
+
 def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir,
-                sos_idx=1, eos_idx=2):
+                sos_idx=1, eos_idx=2, pad_idx=0):
 
     # Rebuild model
     encoder = TransformerEncoder(
@@ -47,7 +60,7 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
         emb_dim=embidding_dim,
         n_heads=4,
         n_layers=2,
-        ff_dim=256
+        ff_dim=hidden_dim
     )
     decoder = TransformerDecoder(
         vocab_size=vocab_size,
@@ -74,11 +87,13 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
             encrypted, plain = encrypted.to(device), plain.to(device)
 
             # Greedy decoding
-            pred_seq = greedy_decode(model, encrypted, max_len=plain.size(1), sos_idx=sos_idx, eos_idx=eos_idx, device=device)
+            pred_seq = greedy_decode(model, encrypted, max_len=plain.size(1),
+                                      sos_idx=sos_idx, eos_idx=eos_idx, device=device)
             predictions.append(pred_seq)
 
-            # Métricas
-            target_seq = plain[0].cpu().tolist()
+            # Target alineado: sin <sos>, recortado en <eos>/<pad>
+            target_seq = _trim_target(plain[0].cpu().tolist(), pad_idx, eos_idx)
+
             min_len = min(len(pred_seq), len(target_seq))
             greedy_correct += sum(p == t for p, t in zip(pred_seq[:min_len], target_seq[:min_len]))
             greedy_tokens += len(target_seq)
@@ -100,7 +115,7 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
 
     # Métricas finales
     greedy_acc = greedy_correct / greedy_tokens if greedy_tokens > 0 else 0.0
-    exact_acc = exact_matches / len(infer_loader)
+    exact_acc = exact_matches / len(infer_loader.dataset) if len(infer_loader.dataset) > 0 else 0.0
 
     return {
         "predictions": predictions,

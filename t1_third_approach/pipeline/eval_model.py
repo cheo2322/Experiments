@@ -7,28 +7,19 @@ def compute_accuracy(predictions, targets, pad_idx=0):
     return correct.sum().item(), mask.sum().item()
 
 def greedy_decode(model, encrypted, max_len, sos_idx, eos_idx, device):
-    """
-    Greedy decoding para batch completo.
-    Genera secuencias en paralelo hasta que todas lleguen a <eos> o max_len.
-    """
     model.eval()
     with torch.no_grad():
-        # Codificar el batch
         memory, src_key_padding_mask = model.encoder(encrypted)
         batch_size = encrypted.size(0)
 
-        # Inicializar con <sos> para cada ejemplo
-        input_token = torch.full((batch_size, 1), sos_idx, device=device)
-
-        # Lista de secuencias decodificadas (una por ejemplo)
+        generated = torch.full((batch_size, 1), sos_idx, dtype=torch.long, device=device)
         decoded = [[] for _ in range(batch_size)]
         finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
 
         for _ in range(max_len):
-            output = model.decoder(input_token, memory, memory_key_padding_mask=src_key_padding_mask)
-            next_token = output.argmax(-1)[:, -1]  # (batch_size,)
+            output = model.decoder(generated, memory, memory_key_padding_mask=src_key_padding_mask)
+            next_token = output.argmax(-1)[:, -1]  # último paso de la secuencia completa
 
-            # Actualizar secuencias
             for i in range(batch_size):
                 if not finished[i]:
                     if next_token[i].item() == eos_idx:
@@ -36,10 +27,9 @@ def greedy_decode(model, encrypted, max_len, sos_idx, eos_idx, device):
                     else:
                         decoded[i].append(next_token[i].item())
 
-            # Preparar input para el siguiente paso
-            input_token = next_token.unsqueeze(1)
+            # Concatenar, no reemplazar
+            generated = torch.cat([generated, next_token.unsqueeze(1)], dim=1)
 
-            # Si todos terminaron, salir
             if finished.all():
                 break
 
@@ -74,7 +64,14 @@ def eval_model(eval_loader, model, criterion, device, pad_idx=0, sos_idx=1, eos_
             pred_batch = greedy_decode(model, encrypted, max_len=plain.size(1), sos_idx=sos_idx, eos_idx=eos_idx, device=device)
 
             # Comparar cada ejemplo del batch
-            for pred_seq, target_seq in zip(pred_batch, plain.cpu().tolist()):
+            for pred_seq, target_row in zip(pred_batch, plain.cpu().tolist()):
+                # Quitar <sos> inicial, y recortar en el primer <eos> o <pad>
+                target_seq = target_row[1:]
+                if eos_idx in target_seq:
+                    target_seq = target_seq[:target_seq.index(eos_idx)]
+                elif pad_idx in target_seq:
+                    target_seq = target_seq[:target_seq.index(pad_idx)]
+
                 min_len = min(len(pred_seq), len(target_seq))
                 greedy_correct += sum(p == t for p, t in zip(pred_seq[:min_len], target_seq[:min_len]))
                 greedy_tokens += len(target_seq)
