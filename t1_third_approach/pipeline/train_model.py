@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from graphics.graphic import plot_metrics
-from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
+from models.seq2seq.seq2seq import Seq2Seq, TransformerEncoder, TransformerDecoder
 from t1_third_approach.pipeline.eval_model import compute_accuracy, eval_model
 
 
@@ -11,8 +11,20 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
                 lr, epochs, grad_clip, device, output_dir, weight_decay=0.0,
                 print_every = 1, loss_threshold = 2.0, acc_threshold = 0.5):
 
-    encoder = Encoder(vocab_size, emb_dim, hidden_dim)
-    decoder = Decoder(vocab_size, emb_dim, hidden_dim)
+    encoder = TransformerEncoder(
+        vocab_size=vocab_size,
+        emb_dim=emb_dim,
+        n_heads=4,
+        n_layers=2,
+        ff_dim=256
+    )
+    decoder = TransformerDecoder(
+        vocab_size=vocab_size,
+        emb_dim=emb_dim,
+        n_heads=4,
+        n_layers=2,
+        ff_dim=256
+    )
     model = Seq2Seq(encoder, decoder).to(device)
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
@@ -46,10 +58,10 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         for encrypted, plain, encrypted_lengths, _ in loaders[0]:
             encrypted, plain = encrypted.to(device), plain.to(device)
             optimizer.zero_grad()
-
-            # Forward: input = encrypted, target = plain
-            output = model(encrypted, encrypted_lengths, plain[:, :-1])
             
+            trg_input = plain[:, :-1]
+            output = model(encrypted, trg_input)
+
             # Fails if vocabulary does not match the model's output size
             assert output.size(-1) == vocab_size, f"{output.size(-1)} != {vocab_size}"
 

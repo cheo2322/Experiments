@@ -1,34 +1,60 @@
+import torch
 import torch.nn as nn
 
-class Encoder(nn.Module):
-    def __init__(self, vocab_size, emb_dim, hidden_dim):
+class TransformerEncoder(nn.Module):
+    def __init__(self, vocab_size, emb_dim, n_heads=4, n_layers=2, ff_dim=256, pad_idx=0):
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=0)
-        self.rnn = nn.GRU(emb_dim, hidden_dim, batch_first=True)
-
-    def forward(self, src, src_lengths):
-        # Embedding
-        embedded = self.embedding(src)
-        # Empaquetar secuencias para manejar longitudes variables
-        packed = nn.utils.rnn.pack_padded_sequence(
-            embedded, src_lengths, batch_first=True, enforce_sorted=False
+        self.pad_idx = pad_idx
+        self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=pad_idx)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=emb_dim,
+            nhead=n_heads,
+            dim_feedforward=ff_dim,
+            batch_first=True
         )
-        _, hidden = self.rnn(packed)
-        return hidden
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+
+    def forward(self, src):
+        embedded = self.embedding(src)  # [batch, seq, emb_dim]
+        # Máscara de padding: True donde hay <pad>
+        src_key_padding_mask = (src == self.pad_idx)
+        memory = self.transformer(embedded, src_key_padding_mask=src_key_padding_mask)
+        return memory, src_key_padding_mask
 
 
-class Decoder(nn.Module):
-    def __init__(self, vocab_size, emb_dim, hidden_dim):
+class TransformerDecoder(nn.Module):
+    def __init__(self, vocab_size, emb_dim, n_heads=4, n_layers=2, ff_dim=256, pad_idx=0):
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=0)
-        self.rnn = nn.GRU(emb_dim, hidden_dim, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, vocab_size)
+        self.pad_idx = pad_idx
+        self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=pad_idx)
+        decoder_layer = nn.TransformerDecoderLayer(
+            d_model=emb_dim,
+            nhead=n_heads,
+            dim_feedforward=ff_dim,
+            batch_first=True
+        )
+        self.transformer = nn.TransformerDecoder(decoder_layer, num_layers=n_layers)
+        self.fc = nn.Linear(emb_dim, vocab_size)
 
-    def forward(self, trg, hidden):
-        embedded = self.embedding(trg)
-        output, hidden = self.rnn(embedded, hidden)
-        logits = self.fc(output)
-        return logits, hidden
+    def forward(self, trg, memory, memory_key_padding_mask=None):
+        embedded = self.embedding(trg)  # [batch, seq, emb_dim]
+
+        # Máscara causal: evita que el decoder vea tokens futuros
+        seq_len = trg.size(1)
+        float_mask = nn.Transformer.generate_square_subsequent_mask(seq_len).to(trg.device)
+        tgt_mask = float_mask == float('-inf')  # convertir a bool
+
+        # Máscara de padding para target
+        tgt_key_padding_mask = (trg == self.pad_idx)
+
+        output = self.transformer(
+            embedded, memory,
+            tgt_mask=tgt_mask,
+            tgt_key_padding_mask=tgt_key_padding_mask,
+            memory_key_padding_mask=memory_key_padding_mask
+        )
+        logits = self.fc(output)  # [batch, seq, vocab]
+        return logits
 
 
 class Seq2Seq(nn.Module):
@@ -37,7 +63,9 @@ class Seq2Seq(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-    def forward(self, src, src_lengths, trg):
-        hidden = self.encoder(src, src_lengths)
-        outputs, _ = self.decoder(trg, hidden)
+    def forward(self, src, trg):
+        # Encoder produce memory y su máscara de padding
+        memory, src_key_padding_mask = self.encoder(src)
+        # Decoder usa memory + secuencia target (teacher forcing)
+        outputs = self.decoder(trg, memory, memory_key_padding_mask=src_key_padding_mask)
         return outputs

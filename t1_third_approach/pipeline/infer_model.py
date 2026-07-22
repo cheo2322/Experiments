@@ -1,5 +1,5 @@
 import torch
-from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
+from models.seq2seq.seq2seq import Seq2Seq, TransformerEncoder, TransformerDecoder
 
 def decode_tokens(seq, vocab):
     chars = []
@@ -30,8 +30,20 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
                 sos_idx=1, eos_idx=2):
 
     # Rebuild model
-    encoder = Encoder(vocab_size, embidding_dim, hidden_dim)
-    decoder = Decoder(vocab_size, embidding_dim, hidden_dim)
+    encoder = TransformerEncoder(
+        vocab_size=vocab_size,
+        emb_dim=embidding_dim,
+        n_heads=4,
+        n_layers=2,
+        ff_dim=256
+    )
+    decoder = TransformerDecoder(
+        vocab_size=vocab_size,
+        emb_dim=embidding_dim,
+        n_heads=4,
+        n_layers=2,
+        ff_dim=256
+    )
     model = Seq2Seq(encoder, decoder).to(device)
 
     # Load checkpoint
