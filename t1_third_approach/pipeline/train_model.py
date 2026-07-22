@@ -33,6 +33,8 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
     val_losses = []
     train_accuracies = []
     val_accuracies = []
+    greedy_accuracies = []
+    exact_accuracies = []
     
     for epoch in range(epochs):
         # Training
@@ -63,7 +65,6 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             total_correct += correct
             total_tokens += tokens
 
-
         avg_loss = total_loss / total_tokens if total_tokens > 0 else 0.0
         train_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
 
@@ -80,9 +81,11 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         train_accuracies.append(train_acc)
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
+        greedy_accuracies.append(greedy_acc)   # <-- acumular por época
+        exact_accuracies.append(exact_acc)     # <-- acumular por época
 
         if epoch % print_every == 0:
-            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Greedy Acc: {greedy_acc:.4f}, Exact Acc: {exact_acc:.4f}")
 
         # Save the best according to validation loss and accuracy thresholds
         # if val_loss < loss_threshold and val_acc > acc_threshold and val_loss < best_eval_loss and val_acc > best_eval_acc:
@@ -93,4 +96,4 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             torch.save(model.state_dict(), ckpt_path)
             print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
 
-    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, greedy_accs=greedy_acc, exact_accs=exact_acc)
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, greedy_accs=greedy_accuracies, exact_accs=exact_accuracies)

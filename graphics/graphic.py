@@ -26,9 +26,9 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs,
     # Accuracies
     axes[1].plot(epochs, train_accs, label="Train Accuracy", color="green")
     axes[1].plot(epochs, val_accs, label="Val Accuracy (Teacher Forcing)", color="red")
-    if greedy_accs is not None:
+    if greedy_accs is not None and len(greedy_accs) == len(epochs):
         axes[1].plot(epochs, greedy_accs, label="Greedy Accuracy", color="purple", linestyle="--")
-    if exact_accs is not None:
+    if exact_accs is not None and len(exact_accs) == len(epochs):
         axes[1].plot(epochs, exact_accs, label="Exact Match", color="brown", linestyle=":")
     axes[1].set_title("Epoch accuracy")
     axes[1].set_xlabel("Epoch")

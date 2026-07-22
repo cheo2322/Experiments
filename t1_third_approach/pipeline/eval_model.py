@@ -26,8 +26,7 @@ def greedy_decode(model, encrypted, encrypted_lengths, max_len, sos_idx, eos_idx
 
         for _ in range(max_len):
             output, hidden = model.decoder(input_token, hidden)
-            # Elegir el token más probable para cada ejemplo del batch
-            next_token = output.argmax(-1)[:, -1]  # shape: (batch_size,)
+            next_token = output.argmax(-1)[:, -1]  # (batch_size,)
 
             # Actualizar secuencias
             for i in range(batch_size):
@@ -64,32 +63,31 @@ def eval_model(eval_loader, model, criterion, device, pad_idx=0, sos_idx=1, eos_
             num_tokens = (plain[:, 1:] != pad_idx).sum().item()
             total_loss += loss.item() * num_tokens
 
-            # Accuracy teacher forcing
+            # Teacher forcing accuracy
             correct, tokens = compute_accuracy(output, plain[:, 1:], pad_idx)
             total_correct += correct
             total_tokens += tokens
 
-            # Greedy decoding (ejemplo con batch=1)
-            pred_seq = greedy_decode(model, encrypted, encrypted_lengths,
-                                     max_len=plain.size(1),
-                                     sos_idx=sos_idx, eos_idx=eos_idx,
-                                     device=device)
-            target_seq = plain[0].tolist()
+            # Greedy decoding para todo el batch
+            pred_batch = greedy_decode(model, encrypted, encrypted_lengths,
+                                       max_len=plain.size(1),
+                                       sos_idx=sos_idx, eos_idx=eos_idx,
+                                       device=device)
 
-            # Token-level accuracy greedy
-            min_len = min(len(pred_seq), len(target_seq))
-            greedy_correct += sum(p == t for p, t in zip(pred_seq[:min_len], target_seq[:min_len]))
-            greedy_tokens += len(target_seq)
+            # Comparar cada ejemplo del batch
+            for pred_seq, target_seq in zip(pred_batch, plain.cpu().tolist()):
+                min_len = min(len(pred_seq), len(target_seq))
+                greedy_correct += sum(p == t for p, t in zip(pred_seq[:min_len], target_seq[:min_len]))
+                greedy_tokens += len(target_seq)
 
-            # Exact match
-            if pred_seq == target_seq:
-                exact_matches += 1
+                if pred_seq == target_seq:
+                    exact_matches += 1
 
     # Métricas finales
     avg_loss = total_loss / total_tokens if total_tokens > 0 else 0.0
     avg_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
     greedy_acc = greedy_correct / greedy_tokens if greedy_tokens > 0 else 0.0
-    exact_acc = exact_matches / len(eval_loader)
+    exact_acc = exact_matches / len(eval_loader.dataset) if len(eval_loader.dataset) > 0 else 0.0
 
     return {
         "loss": avg_loss,
