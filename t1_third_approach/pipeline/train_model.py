@@ -27,16 +27,14 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
     )
     model = Seq2Seq(encoder, decoder).to(device)
 
-    criterion = nn.CrossEntropyLoss(ignore_index=0)
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-    # Updates the learning rate based on the validation loss
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode='min',
-        factor=0.5,
-        patience=5
-    )
+    criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=weight_decay)
+    def lr_lambda(epoch):
+        warmup_epochs = 10
+        if epoch < warmup_epochs:
+            return (epoch + 1) / warmup_epochs
+        return 1.0
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
     
     best_eval_loss = float('inf')
     best_eval_acc = 0.0
@@ -87,14 +85,14 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         greedy_acc = metrics["greedy_acc"]
         exact_acc = metrics["exact_acc"]
 
-        scheduler.step(val_loss)
+        scheduler.step()
 
         train_losses.append(avg_loss)
         train_accuracies.append(train_acc)
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
-        greedy_accuracies.append(greedy_acc)   # <-- acumular por época
-        exact_accuracies.append(exact_acc)     # <-- acumular por época
+        greedy_accuracies.append(greedy_acc)
+        exact_accuracies.append(exact_acc)
 
         if epoch % print_every == 0:
             print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Greedy Acc: {greedy_acc:.4f}, Exact Acc: {exact_acc:.4f}")

@@ -41,4 +41,4 @@ def generate_csv(csv_path, n, min_len, max_len, key_str):
             encrypted_b64 = base64.b64encode(encrypted.encode("latin-1")).decode("ascii")
             writer.writerow([plain, encrypted_b64])
 
-    print(f"CSV file {csv_path} generated with {n} records.")
+    print(f"CSV file {csv_path} generated with {n} records. Min length: {min_len}, Max length: {max_len}")

@@ -12,18 +12,30 @@ def decode_tokens(seq, vocab):
         chars.append(ch)
     return "".join(chars)
 
-def greedy_decode(model, encrypted, encrypted_lengths, max_len, sos_idx, eos_idx, device):
-    # batch size = 1 en inferencia
-    hidden = model.encoder(encrypted, encrypted_lengths)
+def greedy_decode(model, encrypted, max_len, sos_idx, eos_idx, device):
+    # Encoder devuelve memory y máscara
+    memory, src_key_padding_mask = model.encoder(encrypted)
+
+    # Arrancamos con <sos>
     input_token = torch.tensor([[sos_idx]], device=device)
     decoded = []
+
     for _ in range(max_len):
-        output, hidden = model.decoder(input_token, hidden)
+        # Decoder recibe input + memory + máscara
+        output = model.decoder(
+            input_token,
+            memory,
+            memory_key_padding_mask=src_key_padding_mask
+        )
         next_token = output.argmax(-1)[:, -1]
+
         if next_token.item() == eos_idx:
             break
         decoded.append(next_token.item())
-        input_token = next_token.unsqueeze(0)
+
+        # El siguiente paso usa el token recién generado
+        input_token = torch.cat([input_token, next_token.unsqueeze(0)], dim=1)
+
     return decoded
 
 def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir,
@@ -58,14 +70,11 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
     shown = 0
 
     with torch.no_grad():
-        for encrypted, plain, encrypted_lengths, _ in infer_loader:
+        for encrypted, plain, _, _ in infer_loader:
             encrypted, plain = encrypted.to(device), plain.to(device)
 
             # Greedy decoding
-            pred_seq = greedy_decode(model, encrypted, encrypted_lengths,
-                                     max_len=plain.size(1),
-                                     sos_idx=sos_idx, eos_idx=eos_idx,
-                                     device=device)
+            pred_seq = greedy_decode(model, encrypted, max_len=plain.size(1), sos_idx=sos_idx, eos_idx=eos_idx, device=device)
             predictions.append(pred_seq)
 
             # Métricas
