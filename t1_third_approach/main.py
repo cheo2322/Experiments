@@ -35,7 +35,7 @@ def main():
     rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
 
     # Dataset completo
-    dataset = Seq2SeqDataset(csv_path, add_sos_eos=True)
+    dataset = Seq2SeqDataset(csv_path)
 
     # Calcular tamaños según split del yaml
     n_total = len(dataset)
@@ -82,8 +82,7 @@ def main():
         output_dir=config["data"]["output_dir"],
         weight_decay=config["train"]["weight_decay"],
         print_every=config["train"]["print_every"],
-        loss_threshold=config["validation"]["loss_threshold"],
-        acc_threshold=config["validation"]["acc_threshold"]
+        max_len=config["model"].get("max_len", 64)
     )
     
     # Inference
@@ -94,19 +93,20 @@ def main():
         vocab_size=config["train"]["vocab_size"],
         embidding_dim=config["model"]["embedding_dim"],
         hidden_dim=config["model"]["hidden_dim"],
-        output_dir=config["data"]["output_dir"]
+        output_dir=config["data"]["output_dir"],
+        max_len=config["model"].get("max_len", 64)
     )
-    
-    greedy_acc = inference["greedy_acc"]
+
+    token_acc = inference["token_acc"]
     exact_acc = inference["exact_acc"]
-    
+
     import matplotlib.pyplot as plt
 
-    def plot_greedy_metrics(greedy_acc, exact_acc, title="Greedy inference metrics"):
+    def plot_inference_metrics(token_acc, exact_acc, title="Inference metrics"):
         fig, ax = plt.subplots(figsize=(6,5))
 
-        metrics = ["Greedy Accuracy", "Exact Match"]
-        values = [greedy_acc, exact_acc]
+        metrics = ["Token Accuracy", "Exact Match"]
+        values = [token_acc, exact_acc]
 
         ax.bar(metrics, values, color=["purple", "brown"])
         ax.set_ylim(0, 1)
@@ -116,10 +116,10 @@ def main():
             ax.text(i, v + 0.02, f"{v:.2f}", ha="center", fontsize=10)
 
         plt.tight_layout()
-        plt.savefig("t1_third_approach/artifacts/greedy_metrics.png")
+        plt.savefig("t1_third_approach/artifacts/inference_metrics.png")
         plt.close(fig)
 
-    plot_greedy_metrics(greedy_acc, exact_acc)
+    plot_inference_metrics(token_acc, exact_acc)
 
 
 if __name__ == "__main__":

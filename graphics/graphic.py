@@ -1,18 +1,16 @@
 import matplotlib.pyplot as plt
 
-def plot_metrics(train_losses, val_losses, train_accs, val_accs,
-                 greedy_accs=None, exact_accs=None):
+def plot_metrics(train_losses, val_losses, train_accs, val_accs, exact_accs=None):
     """
     train_losses: lista con loss promedio por época en entrenamiento
     val_losses: lista con loss promedio por época en validación
-    train_accs: lista con accuracy en entrenamiento por época
-    val_accs: lista con accuracy en validación por época
-    greedy_accs: lista con accuracy por token en greedy decoding (opcional)
-    exact_accs: lista con exact match en greedy decoding (opcional)
+    train_accs: lista con accuracy por token en entrenamiento por época
+    val_accs: lista con accuracy por token en validación por época
+    exact_accs: lista con exact match (secuencia completa correcta) en validación (opcional)
     """
-    epochs = list(range(1, len(train_losses)+1))
+    epochs = list(range(1, len(train_losses) + 1))
 
-    fig, axes = plt.subplots(1, 2, figsize=(12,5))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # Losses
     axes[0].plot(epochs, train_losses, label="Train Loss", color="blue")
@@ -24,12 +22,10 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs,
     axes[0].grid(True)
 
     # Accuracies
-    axes[1].plot(epochs, train_accs, label="Train Accuracy", color="green")
-    axes[1].plot(epochs, val_accs, label="Val Accuracy (Teacher Forcing)", color="red")
-    if greedy_accs is not None and len(greedy_accs) == len(epochs):
-        axes[1].plot(epochs, greedy_accs, label="Greedy Accuracy", color="purple", linestyle="--")
+    axes[1].plot(epochs, train_accs, label="Train Accuracy (per token)", color="green")
+    axes[1].plot(epochs, val_accs, label="Val Accuracy (per token)", color="red")
     if exact_accs is not None and len(exact_accs) == len(epochs):
-        axes[1].plot(epochs, exact_accs, label="Exact Match", color="brown", linestyle=":")
+        axes[1].plot(epochs, exact_accs, label="Exact Match (sequence)", color="brown", linestyle="--")
     axes[1].set_title("Epoch accuracy")
     axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("Accuracy")

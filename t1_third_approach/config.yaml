@@ -6,19 +6,19 @@ data:
     eval: 0.2
     infer: 0.1
   use_sos_eos: true # Add start and end tokens to the sequences
-  n: 15000
-  min_len: 5
-  max_len: 12
+  n: 20000
+  min_len: 16
+  max_len: 32
   key: 'secretkey'
 
 train:
-  epochs: 200
+  epochs: 30
   lr: 0.001
   device: 'auto' # "cuda" | "cpu" | "auto"
   grad_clip: 1.0
   num_workers: 2
   batch_size: 64
-  vocab_size: 259 # ASCII (256) + <pad>, <sos>, <eos>
+  vocab_size: 257 # ASCII (256) + <pad>
   weight_decay: 0.0005
   print_every: 1
 
@@ -29,3 +29,4 @@ validation:
 model:
   embedding_dim: 128
   hidden_dim: 256
+  max_len: 64 # for the output layer
