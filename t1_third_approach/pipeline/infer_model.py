@@ -4,23 +4,37 @@ from models.seq2seq.seq2seq import Seq2Seq, Encoder, Decoder
 def decode_tokens(seq, vocab):
     chars = []
     for token in seq:  # token debe ser int
-        ch = vocab[token]  # vocab es lista, indexada por int
-        if ch == "<sos>":
+        ch = vocab[token]
+        if ch in ("<sos>", "<pad>"):
             continue
         if ch == "<eos>":
             break
-        if ch == "<pad>":
-            continue
         chars.append(ch)
     return "".join(chars)
 
-def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir):
+def greedy_decode(model, encrypted, encrypted_lengths, max_len, sos_idx, eos_idx, device):
+    # batch size = 1 en inferencia
+    hidden = model.encoder(encrypted, encrypted_lengths)
+    input_token = torch.tensor([[sos_idx]], device=device)
+    decoded = []
+    for _ in range(max_len):
+        output, hidden = model.decoder(input_token, hidden)
+        next_token = output.argmax(-1)[:, -1]
+        if next_token.item() == eos_idx:
+            break
+        decoded.append(next_token.item())
+        input_token = next_token.unsqueeze(0)
+    return decoded
+
+def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir,
+                sos_idx=1, eos_idx=2):
+
     # Rebuild model
     encoder = Encoder(vocab_size, embidding_dim, hidden_dim)
     decoder = Decoder(vocab_size, embidding_dim, hidden_dim)
     model = Seq2Seq(encoder, decoder).to(device)
 
-    # Cargar checkpoint
+    # Load checkpoint
     ckpt_path = f"{output_dir}/best_model.pt"
     state_dict = torch.load(ckpt_path, map_location=device, weights_only=True)
     model.load_state_dict(state_dict)
@@ -28,22 +42,33 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
     print(f"Model loaded from {ckpt_path}")
 
     predictions = []
+    greedy_correct, greedy_tokens, exact_matches = 0, 0, 0
     shown = 0
+
     with torch.no_grad():
         for encrypted, plain, encrypted_lengths, _ in infer_loader:
-            plain, encrypted = plain.to(device), encrypted.to(device)
-            output = model(encrypted, encrypted_lengths, plain[:, :-1])
-            preds = output.argmax(-1)
-            predictions.extend(preds.cpu().tolist())
+            encrypted, plain = encrypted.to(device), plain.to(device)
 
-            decoded_batch = preds.cpu().tolist()
+            # Greedy decoding
+            pred_seq = greedy_decode(model, encrypted, encrypted_lengths,
+                                     max_len=plain.size(1),
+                                     sos_idx=sos_idx, eos_idx=eos_idx,
+                                     device=device)
+            predictions.append(pred_seq)
 
-            for i, (plain_seq, encrypted_seq, pred_seq) in enumerate(zip(plain, encrypted, decoded_batch)):
-                if shown >= 10:
-                    break
-                encrypted_text = decode_tokens(encrypted_seq, dataset.vocab)  # input
-                plain_text = decode_tokens(plain_seq, dataset.vocab)          # target
-                pred_text = decode_tokens(pred_seq, dataset.vocab)            # prediction
+            # Métricas
+            target_seq = plain[0].cpu().tolist()
+            min_len = min(len(pred_seq), len(target_seq))
+            greedy_correct += sum(p == t for p, t in zip(pred_seq[:min_len], target_seq[:min_len]))
+            greedy_tokens += len(target_seq)
+            if pred_seq == target_seq:
+                exact_matches += 1
+
+            # Mostrar ejemplos
+            if shown < 10:
+                encrypted_text = decode_tokens(encrypted[0].cpu().tolist(), dataset.vocab)
+                plain_text = decode_tokens(target_seq, dataset.vocab)
+                pred_text = decode_tokens(pred_seq, dataset.vocab)
 
                 print(f"Example {shown+1}:")
                 print(f"  Plain text    : {plain_text}")
@@ -51,8 +76,13 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
                 print(f"  Prediction    : {pred_text}")
                 print("-" * 50)
                 shown += 1
-            if shown >= 10:
-                break
 
-    decoded = [[dataset.vocab[token] for token in seq] for seq in predictions]
-    return decoded
+    # Métricas finales
+    greedy_acc = greedy_correct / greedy_tokens if greedy_tokens > 0 else 0.0
+    exact_acc = exact_matches / len(infer_loader)
+
+    return {
+        "predictions": predictions,
+        "greedy_acc": greedy_acc,
+        "exact_acc": exact_acc
+    }

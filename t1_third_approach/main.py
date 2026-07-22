@@ -87,7 +87,7 @@ def main():
     )
     
     # Inference
-    infer_model(
+    inference = infer_model(
         infer_loader,
         dataset,
         device,
@@ -96,6 +96,31 @@ def main():
         hidden_dim=config["model"]["hidden_dim"],
         output_dir=config["data"]["output_dir"]
     )
+    
+    greedy_acc = inference["greedy_acc"]
+    exact_acc = inference["exact_acc"]
+    
+    import matplotlib.pyplot as plt
+
+    def plot_greedy_metrics(greedy_acc, exact_acc, title="Greedy inference metrics"):
+        fig, ax = plt.subplots(figsize=(6,5))
+
+        metrics = ["Greedy Accuracy", "Exact Match"]
+        values = [greedy_acc, exact_acc]
+
+        ax.bar(metrics, values, color=["purple", "brown"])
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Accuracy")
+        ax.set_title(title)
+        for i, v in enumerate(values):
+            ax.text(i, v + 0.02, f"{v:.2f}", ha="center", fontsize=10)
+
+        plt.tight_layout()
+        plt.savefig("t1_third_approach/artifacts/greedy_metrics.png")
+        plt.close(fig)
+
+    plot_greedy_metrics(greedy_acc, exact_acc)
+
 
 if __name__ == "__main__":
     main()

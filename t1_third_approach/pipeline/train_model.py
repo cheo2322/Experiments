@@ -68,24 +68,29 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         train_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
 
         # Validation
-        val_loss, val_acc = eval_model(loaders[1], model, criterion, device)
+        metrics = eval_model(loaders[1], model, criterion, device)
+        val_loss = metrics["loss"]
+        val_acc = metrics["teacher_acc"]
+        greedy_acc = metrics["greedy_acc"]
+        exact_acc = metrics["exact_acc"]
+
         scheduler.step(val_loss)
-        
+
         train_losses.append(avg_loss)
         train_accuracies.append(train_acc)
         val_losses.append(val_loss)
         val_accuracies.append(val_acc)
-        
+
         if epoch % print_every == 0:
             print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
         # Save the best according to validation loss and accuracy thresholds
-        if val_loss < loss_threshold and val_acc > acc_threshold and val_loss < best_eval_loss and val_acc > best_eval_acc:
+        # if val_loss < loss_threshold and val_acc > acc_threshold and val_loss < best_eval_loss and val_acc > best_eval_acc:
+        if val_loss < best_eval_loss and val_acc > best_eval_acc:
             best_eval_loss = val_loss
             best_eval_acc = val_acc
             ckpt_path = f"{output_dir}/best_model.pt"
             torch.save(model.state_dict(), ckpt_path)
             print(f"Model saved to {ckpt_path}. Epoch {epoch+1}, Train Loss: {avg_loss:.4f}, Train Acc: {train_acc:.4f}, (Val Loss={val_loss:.4f}, Val Acc={val_acc:.4f})")
 
-    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies)
-
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, greedy_accs=greedy_acc, exact_accs=exact_acc)
