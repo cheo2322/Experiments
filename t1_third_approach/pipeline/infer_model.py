@@ -51,8 +51,7 @@ def _trim_target(target_row, pad_idx, eos_idx):
     return target_seq
 
 
-def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir,
-                sos_idx=1, eos_idx=2, pad_idx=0):
+def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden_dim, output_dir, sos_idx=1, eos_idx=2, pad_idx=0):
 
     # Rebuild model
     encoder = TransformerEncoder(
@@ -67,7 +66,7 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
         emb_dim=embidding_dim,
         n_heads=4,
         n_layers=2,
-        ff_dim=256
+        ff_dim=hidden_dim
     )
     model = Seq2Seq(encoder, decoder).to(device)
 
