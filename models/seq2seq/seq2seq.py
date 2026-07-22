@@ -12,27 +12,27 @@ class PositionalEmbedding(nn.Module):
     def forward(self, x):
         # x: (batch, seq_len, emb_dim)
         seq_len = x.size(1)
-        positions = torch.arange(seq_len, device=x.device).unsqueeze(0)  # (1, seq_len)
+        positions = torch.arange(seq_len, device=x.device).unsqueeze(0)
+        
         return x + self.pos_embedding(positions)
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, vocab_size, emb_dim, n_heads, n_layers, ff_dim, pad_idx=0, max_len=64):
+    def __init__(self, vocab_size, emb_dim=512, n_heads=8, n_layers=4, ff_dim=1024,
+                 pad_idx=0, max_len=64):
         super().__init__()
         self.pad_idx = pad_idx
+        self.emb_dim = emb_dim
         self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=pad_idx)
         self.pos_enc = PositionalEmbedding(max_len, emb_dim)
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=emb_dim,
-            nhead=n_heads,
-            dim_feedforward=ff_dim,
-            batch_first=True,
-            dropout=0.1
+            d_model=emb_dim, nhead=n_heads, dim_feedforward=ff_dim,
+            batch_first=True, dropout=0.1
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
 
     def forward(self, src):
-        embedded = self.embedding(src) * math.sqrt(self.embedding.embedding_dim)
+        embedded = self.embedding(src) * math.sqrt(self.emb_dim)   # <-- fix
         embedded = self.pos_enc(embedded)
     
         src_key_padding_mask = (src == self.pad_idx)
@@ -42,23 +42,22 @@ class TransformerEncoder(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, vocab_size, emb_dim, n_heads, n_layers, ff_dim, pad_idx=0, max_len=64):
+    def __init__(self, vocab_size, emb_dim=512, n_heads=8, n_layers=4, ff_dim=1024,
+                 pad_idx=0, max_len=64):
         super().__init__()
         self.pad_idx = pad_idx
+        self.emb_dim = emb_dim
         self.embedding = nn.Embedding(vocab_size, emb_dim, padding_idx=pad_idx)
         self.pos_enc = PositionalEmbedding(max_len, emb_dim)
         decoder_layer = nn.TransformerDecoderLayer(
-            d_model=emb_dim,
-            nhead=n_heads,
-            dim_feedforward=ff_dim,
-            batch_first=True,
-            dropout=0.1
+            d_model=emb_dim, nhead=n_heads, dim_feedforward=ff_dim,
+            batch_first=True, dropout=0.1
         )
         self.transformer = nn.TransformerDecoder(decoder_layer, num_layers=n_layers)
         self.fc = nn.Linear(emb_dim, vocab_size)
 
     def forward(self, trg, memory, memory_key_padding_mask=None):
-        embedded = self.embedding(trg) * math.sqrt(self.embedding.embedding_dim)
+        embedded = self.embedding(trg) * math.sqrt(self.emb_dim)   # <-- fix
         embedded = self.pos_enc(embedded)
         
         seq_len = trg.size(1)
@@ -71,8 +70,8 @@ class TransformerDecoder(nn.Module):
             tgt_key_padding_mask=tgt_key_padding_mask,
             memory_key_padding_mask=memory_key_padding_mask
         )
-        logits = self.fc(output)
-        return logits
+        
+        return self.fc(output)
 
 
 class Seq2Seq(nn.Module):
@@ -83,5 +82,5 @@ class Seq2Seq(nn.Module):
 
     def forward(self, src, trg):
         memory, src_key_padding_mask = self.encoder(src)
-        outputs = self.decoder(trg, memory, memory_key_padding_mask=src_key_padding_mask)
-        return outputs
+
+        return self.decoder(trg, memory, memory_key_padding_mask=src_key_padding_mask)
