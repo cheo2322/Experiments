@@ -30,9 +30,9 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
     predictions = []
     shown = 0
     with torch.no_grad():
-        for plain, encrypted, plain_lengths, _ in infer_loader:
+        for encrypted, plain, encrypted_lengths, _ in infer_loader:
             plain, encrypted = plain.to(device), encrypted.to(device)
-            output = model(plain, plain_lengths, encrypted[:, :-1])
+            output = model(encrypted, encrypted_lengths, plain[:, :-1])
             preds = output.argmax(-1)
             predictions.extend(preds.cpu().tolist())
 
@@ -41,9 +41,9 @@ def infer_model(infer_loader, dataset, device, vocab_size, embidding_dim, hidden
             for i, (plain_seq, encrypted_seq, pred_seq) in enumerate(zip(plain, encrypted, decoded_batch)):
                 if shown >= 10:
                     break
-                plain_text = decode_tokens(plain_seq, dataset.vocab)
-                encrypted_text = decode_tokens(encrypted_seq, dataset.vocab)
-                pred_text = decode_tokens(pred_seq, dataset.vocab)
+                encrypted_text = decode_tokens(encrypted_seq, dataset.vocab)  # input
+                plain_text = decode_tokens(plain_seq, dataset.vocab)          # target
+                pred_text = decode_tokens(pred_seq, dataset.vocab)            # prediction
 
                 print(f"Example {shown+1}:")
                 print(f"  Plain text    : {plain_text}")

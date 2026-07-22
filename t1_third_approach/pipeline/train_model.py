@@ -41,22 +41,30 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         total_correct = 0
         total_tokens = 0
 
-        for plain, encrypted, plain_lengths, _ in loaders[0]:
-            plain, encrypted = plain.to(device), encrypted.to(device)
+        for encrypted, plain, encrypted_lengths, _ in loaders[0]:
+            encrypted, plain = encrypted.to(device), plain.to(device)
             optimizer.zero_grad()
 
-            output = model(plain, plain_lengths, encrypted[:, :-1])
-            loss = criterion(output.reshape(-1, vocab_size), encrypted[:, 1:].reshape(-1))
+            # Forward: input = encrypted, target = plain
+            output = model(encrypted, encrypted_lengths, plain[:, :-1])
+            
+            # Fails if vocabulary does not match the model's output size
+            assert output.size(-1) == vocab_size, f"{output.size(-1)} != {vocab_size}"
+
+            # Loss: comparar contra texto plano
+            loss = criterion(output.reshape(-1, vocab_size), plain[:, 1:].reshape(-1))
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
-            total_loss += loss.item()
-
-            correct, tokens = compute_accuracy(output, encrypted[:, 1:], pad_idx=0)
+            
+            # Accuracy: comparar contra texto plano
+            correct, tokens = compute_accuracy(output, plain[:, 1:], pad_idx=0)
+            total_loss += loss.item() * tokens
             total_correct += correct
             total_tokens += tokens
 
-        avg_loss = total_loss / len(loaders[0])
+
+        avg_loss = total_loss / total_tokens if total_tokens > 0 else 0.0
         train_acc = total_correct / total_tokens if total_tokens > 0 else 0.0
 
         # Validation

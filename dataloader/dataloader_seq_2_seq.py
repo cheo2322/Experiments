@@ -38,19 +38,19 @@ class Seq2SeqDataset(Dataset):
         encrypted_raw = base64.b64decode(encrypted_b64).decode("latin-1")
 
         encrypted_seq = self.encode(encrypted_raw)
-        return torch.tensor(plain_seq, dtype=torch.long), torch.tensor(encrypted_seq, dtype=torch.long)
+        return torch.tensor(encrypted_seq, dtype=torch.long), torch.tensor(plain_seq, dtype=torch.long)
 
 
 def collate_fn(batch):
-    plain_seqs, encrypted_seqs = zip(*batch)
+    encrypted_seqs, plain_seqs = zip(*batch)
 
-    plain_lengths = [len(seq) for seq in plain_seqs]
     encrypted_lengths = [len(seq) for seq in encrypted_seqs]
+    plain_lengths = [len(seq) for seq in plain_seqs]
 
-    plain_padded = torch.nn.utils.rnn.pad_sequence(plain_seqs, batch_first=True, padding_value=0)
     encrypted_padded = torch.nn.utils.rnn.pad_sequence(encrypted_seqs, batch_first=True, padding_value=0)
+    plain_padded = torch.nn.utils.rnn.pad_sequence(plain_seqs, batch_first=True, padding_value=0)
 
-    return plain_padded, encrypted_padded, plain_lengths, encrypted_lengths
+    return encrypted_padded, plain_padded, encrypted_lengths, plain_lengths
 
 
 def get_dataloader(csv_path, batch_size=64, num_workers=2, pin_memory=True, add_sos_eos=True):
