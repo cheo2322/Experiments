@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from graphics.graphic import plot_metrics
-from models.seq2seq.seq2seq import PositionwiseModel
+# from models.seq2seq.seq2seq import PositionwiseModel
+from models.seq2seq.seq2seq2 import PositionwiseModel
 
 
 def compute_accuracy(predictions, targets, pad_idx=0):
@@ -53,8 +54,7 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
         emb_dim=emb_dim,
         n_heads=4,
         n_layers=2,
-        ff_dim=hidden_dim,
-        max_len=max_len
+        ff_dim=hidden_dim
     ).to(device)
 
     criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)
@@ -121,4 +121,4 @@ def train_model(loaders, vocab_size, emb_dim, hidden_dim,
             print(f"Early stopping at epoch {epoch+1} due to high exact match accuracy.")
             break
 
-    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, exact_accs=exact_accuracies)
+    plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies, output_dir, exact_accs=exact_accuracies)

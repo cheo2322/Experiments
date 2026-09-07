@@ -1,0 +1,32 @@
+data:
+  csv_path: t1_third_approach/data/des_1_round_dataset.csv
+  output_dir: t1_third_approach/artifacts/des_1_round
+  split:
+    train: 0.7
+    eval: 0.2
+    infer: 0.1
+  use_sos_eos: true # Add start and end tokens to the sequences
+  n: 20000
+  min_len: 16
+  max_len: 32
+  key: 'secretkey'
+
+train:
+  epochs: 30
+  lr: 0.001
+  device: 'auto' # "cuda" | "cpu" | "auto"
+  grad_clip: 1.0
+  num_workers: 2
+  batch_size: 64
+  vocab_size: 257 # ASCII (256) + <pad>
+  weight_decay: 0.0005
+  print_every: 1
+
+validation:
+  loss_threshold: 1.5
+  acc_threshold: 0.7
+
+model:
+  embedding_dim: 128
+  hidden_dim: 256
+  block_size: 8 # tamaño de bloque de DES, reemplaza max_len

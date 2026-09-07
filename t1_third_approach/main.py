@@ -2,8 +2,10 @@ import yaml
 import torch
 from torch.utils.data import random_split, DataLoader
 
-from t1_third_approach.data import rc4
-from dataloader.dataloader_seq_2_seq import Seq2SeqDataset, collate_fn
+# from t1_third_approach.data import rc4
+# from dataloader.dataloader_seq_2_seq import Seq2SeqDataset, collate_fn
+from data import des_1_round
+from dataloader.dl_seq2seq2 import Seq2SeqDataset, collate_fn
 from t1_third_approach.pipeline.train_model import train_model
 from t1_third_approach.pipeline.infer_model import infer_model
 
@@ -32,7 +34,8 @@ def main():
     key_str = config["data"].get("key", "secretkey")
 
     # Generate dataset (uncomment if you want to generate a new one, but be careful as it will overwrite the existing one)
-    rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
+    # rc4.generate_csv(csv_path, n, min_len, max_len, key_str)
+    des_1_round.generate_csv(csv_path, n, min_len, max_len, key_str)
 
     # Dataset completo
     dataset = Seq2SeqDataset(csv_path)
@@ -70,20 +73,20 @@ def main():
     
     # Training
     vocab_size = config["train"]["vocab_size"]
-    train_model(
-        [train_loader, eval_loader],
-        vocab_size=vocab_size,
-        emb_dim=config["model"]["embedding_dim"],
-        hidden_dim=config["model"]["hidden_dim"],
-        lr=config["train"]["lr"],
-        epochs=config["train"]["epochs"],
-        grad_clip=config["train"]["grad_clip"],
-        device=device,
-        output_dir=config["data"]["output_dir"],
-        weight_decay=config["train"]["weight_decay"],
-        print_every=config["train"]["print_every"],
-        max_len=config["model"].get("max_len", 64)
-    )
+    # train_model(
+    #     [train_loader, eval_loader],
+    #     vocab_size=vocab_size,
+    #     emb_dim=config["model"]["embedding_dim"],
+    #     hidden_dim=config["model"]["hidden_dim"],
+    #     lr=config["train"]["lr"],
+    #     epochs=config["train"]["epochs"],
+    #     grad_clip=config["train"]["grad_clip"],
+    #     device=device,
+    #     output_dir=config["data"]["output_dir"],
+    #     weight_decay=config["train"]["weight_decay"],
+    #     print_every=config["train"]["print_every"],
+    #     max_len=config["model"].get("max_len", 64)
+    # )
     
     # Inference
     inference = infer_model(
@@ -99,6 +102,8 @@ def main():
 
     token_acc = inference["token_acc"]
     exact_acc = inference["exact_acc"]
+    per_bit_acc = inference["per_bit_acc"]
+    print("Per-bit accuracy:", per_bit_acc)
 
     import matplotlib.pyplot as plt
 
@@ -116,10 +121,33 @@ def main():
             ax.text(i, v + 0.02, f"{v:.2f}", ha="center", fontsize=10)
 
         plt.tight_layout()
-        plt.savefig("t1_third_approach/artifacts/inference_metrics.png")
+        plt.savefig(f"{config['data']['output_dir']}/inference_metrics.png")
         plt.close(fig)
 
     plot_inference_metrics(token_acc, exact_acc)
+
+    def plot_bit_accuracy(per_bit_acc, title="Per-bit accuracy"):
+        fig, ax = plt.subplots(figsize=(8,5))
+
+        bit_labels = [f"bit {i}" for i in range(len(per_bit_acc))]
+        colors = ["teal"] * len(per_bit_acc)
+
+        ax.bar(bit_labels, per_bit_acc, color=colors)
+        ax.axhline(0.5, color="red", linestyle="--", linewidth=1, label="Random baseline (0.5)")
+        ax.set_ylim(0, 1.05)
+        ax.set_ylabel("Accuracy")
+        ax.set_xlabel("Bit position (0 = LSB, 7 = MSB)")
+        ax.set_title(title)
+        ax.legend()
+
+        for i, v in enumerate(per_bit_acc):
+            ax.text(i, v + 0.02, f"{v:.2f}", ha="center", fontsize=9)
+
+        plt.tight_layout()
+        plt.savefig(f"{config['data']['output_dir']}/per_bit_accuracy.png")
+        plt.close(fig)
+
+    plot_bit_accuracy(per_bit_acc)
 
 
 if __name__ == "__main__":

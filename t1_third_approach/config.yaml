@@ -1,6 +1,8 @@
 data:
-  csv_path: t1_third_approach/data/rc4_dataset.csv
-  output_dir: t1_third_approach/artifacts
+  # csv_path: t1_third_approach/data/rc4_dataset.csv
+  # output_dir: t1_third_approach/artifacts
+  csv_path: t1_third_approach/data/des_1_round_dataset.csv
+  output_dir: t1_third_approach/artifacts/des_1_round
   split:
     train: 0.7
     eval: 0.2
@@ -12,7 +14,7 @@ data:
   key: 'secretkey'
 
 train:
-  epochs: 30
+  epochs: 200
   lr: 0.001
   device: 'auto' # "cuda" | "cpu" | "auto"
   grad_clip: 1.0
@@ -30,3 +32,4 @@ model:
   embedding_dim: 128
   hidden_dim: 256
   max_len: 64 # for the output layer
+  block_size: 8 # tamaño de bloque de DES, reemplaza max_len

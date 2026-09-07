@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-def plot_metrics(train_losses, val_losses, train_accs, val_accs, exact_accs=None):
+def plot_metrics(train_losses, val_losses, train_accs, val_accs, output_dir, exact_accs=None):
     """
     train_losses: lista con loss promedio por época en entrenamiento
     val_losses: lista con loss promedio por época en validación
@@ -34,5 +34,5 @@ def plot_metrics(train_losses, val_losses, train_accs, val_accs, exact_accs=None
 
     fig.suptitle("Training and validation metrics", fontsize=16)
     plt.tight_layout()
-    plt.savefig("t1_third_approach/artifacts/metrics.png")
+    plt.savefig(f"{output_dir}/metrics.png")
     plt.close(fig)
